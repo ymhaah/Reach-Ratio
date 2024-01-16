@@ -1,0 +1,13 @@
+{
+    "manifest_version": 3,
+    "name": "Reach Ratio",
+    "description": "See your real engagement; Interactions as % of followers.",
+    "version": "0.1",
+    "icons": {
+        "128": "Reach_Ratio-128.png"
+    },
+    "action": {
+        "default_popup": "index.html",
+        "default_icon": "Reach_Ratio.png"
+    }
+}
