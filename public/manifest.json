@@ -9,5 +9,11 @@
     "action": {
         "default_popup": "index.html",
         "default_icon": "Reach_Ratio.png"
-    }
+    },
+    "content_scripts": [
+        {
+            "js": ["index.js"],
+            "matches": ["https://twitter.com/*"]
+        }
+    ]
 }

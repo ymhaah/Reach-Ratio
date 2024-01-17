@@ -9,8 +9,11 @@
         "preview": "vite preview"
     },
     "devDependencies": {
-        "chrome-types": "^0.1.250",
+        "@types/chrome": "^0.0.258",
         "typescript": "^5.2.2",
         "vite": "^5.0.8"
+    },
+    "dependencies": {
+        "chrome-types": "^0.1.250"
     }
 }
