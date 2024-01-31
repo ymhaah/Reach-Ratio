@@ -8,30 +8,55 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-function sendUrl(message) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            // Query for the active tab
-            const [tab] = yield chrome.tabs.query({
-                active: true,
-                lastFocusedWindow: true,
-            });
-            if (!tab) {
-                throw new Error("No active tab found.");
+function isSupportedWebsite(url) {
+    // list of supported websites
+    const supportedWebsites = ["https://twitter.com"];
+    // Check if the current URL matches any of the supported websites
+    return supportedWebsites.some((website) => url.startsWith(website));
+}
+function getCurrentUrl() {
+    return new Promise((resolve) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            var _a;
+            if (!tabs || tabs.length === 0 || !((_a = tabs[0]) === null || _a === void 0 ? void 0 : _a.url)) {
+                resolve(null);
+                return;
             }
-            // Send the message to the content script in the active tab
-            const response = yield chrome.tabs.sendMessage(tab.id, message);
-            if (chrome.runtime.lastError) {
-                // throw new Error(chrome.runtime.lastError);
+            const currentUrl = tabs[0].url;
+            // Check if the current website is supported
+            if (isSupportedWebsite(currentUrl)) {
+                resolve(currentUrl);
             }
-            console.log(response);
-        }
-        catch (error) {
-            // console.error("Error in sendUrl:", error);
-        }
+            else {
+                // Skip processing for unsupported websites
+                resolve(null);
+            }
+        });
     });
 }
-sendUrl("hi");
+// Handle initial URL
+getCurrentUrl().then((initialUrl) => {
+    if (initialUrl) {
+        console.log("Initial URL:", initialUrl);
+    }
+    else {
+        console.log("Not on a supported website.");
+    }
+});
+// Listen for history state changes (for SPAs)
+chrome.webNavigation.onHistoryStateUpdated.addListener((details) => __awaiter(void 0, void 0, void 0, function* () {
+    const url = yield getCurrentUrl();
+    if (url) {
+        console.log("Updated URL (SPA):", url);
+    }
+}));
+// Listen for page load events (for regular pages)
+chrome.webNavigation.onCompleted.addListener((details) => __awaiter(void 0, void 0, void 0, function* () {
+    const url = yield getCurrentUrl();
+    if (url) {
+        console.log("Updated URL (Regular):", url);
+    }
+}));
 // "exclude_matches": [
 //     "https://twitter.com/explore",
 //     "https://twitter.com/home",

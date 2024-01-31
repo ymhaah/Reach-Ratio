@@ -1,29 +1,56 @@
-async function sendUrl(message: string) {
-    try {
-        // Query for the active tab
-        const [tab] = await chrome.tabs.query({
-            active: true,
-            lastFocusedWindow: true,
-        });
+function isSupportedWebsite(url: string): boolean {
+    // list of supported websites
+    const supportedWebsites = ["https://twitter.com"];
 
-        if (!tab) {
-            throw new Error("No active tab found.");
-        }
-
-        // Send the message to the content script in the active tab
-        const response = await chrome.tabs.sendMessage(tab.id, message);
-
-        if (chrome.runtime.lastError) {
-            // throw new Error(chrome.runtime.lastError);
-        }
-
-        console.log(response);
-    } catch (error) {
-        // console.error("Error in sendUrl:", error);
-    }
+    // Check if the current URL matches any of the supported websites
+    return supportedWebsites.some((website) => url.startsWith(website));
 }
 
-sendUrl("hi");
+function getCurrentUrl(): Promise<string | null> {
+    return new Promise((resolve) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (!tabs || tabs.length === 0 || !tabs[0]?.url) {
+                resolve(null);
+                return;
+            }
+
+            const currentUrl = tabs[0].url;
+
+            // Check if the current website is supported
+            if (isSupportedWebsite(currentUrl)) {
+                resolve(currentUrl);
+            } else {
+                // Skip processing for unsupported websites
+                resolve(null);
+            }
+        });
+    });
+}
+
+// Handle initial URL
+getCurrentUrl().then((initialUrl) => {
+    if (initialUrl) {
+        console.log("Initial URL:", initialUrl);
+    } else {
+        console.log("Not on a supported website.");
+    }
+});
+
+// Listen for history state changes (for SPAs)
+chrome.webNavigation.onHistoryStateUpdated.addListener(async (details) => {
+    const url = await getCurrentUrl();
+    if (url) {
+        console.log("Updated URL (SPA):", url);
+    }
+});
+
+// Listen for page load events (for regular pages)
+chrome.webNavigation.onCompleted.addListener(async (details) => {
+    const url = await getCurrentUrl();
+    if (url) {
+        console.log("Updated URL (Regular):", url);
+    }
+});
 
 // "exclude_matches": [
 //     "https://twitter.com/explore",
