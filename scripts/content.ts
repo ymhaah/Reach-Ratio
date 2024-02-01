@@ -2,32 +2,49 @@
 
 // TODO: the website loading state
 
-// async function accessElement(selector: string): Promise<boolean> {
-//     const element = document.querySelector(selector);
+let Profile_Name: string | null;
 
-//     if (element) return true;
-//     return false;
-// }
+chrome.runtime.onMessage.addListener(
+    async (request: { url: string }, sender, sendResponse) => {
+        let page_URL = new URL(request.url);
+        let pathname = page_URL.pathname;
 
-// async function handlePageUpdate(
-//     mutationsList: MutationRecord[],
-//     observer: MutationObserver
-// ) {
-//     for (const mutation of mutationsList) {
-//         if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-//             const isProfilePage = await accessElement(
-//                 "main [aria-label='Home timeline'] a[href='/hafanwy/header_photo']"
-//             );
-//             if (isProfilePage) {
-//                 console.log("Element found!");
-//                 break;
-//             }
-//         }
-//     }
-// }
-// const pageUpdateObserver = new MutationObserver(handlePageUpdate);
+        const parts = pathname.split("/");
+        Profile_Name = parts[parts.length - 1];
 
-// pageUpdateObserver.observe(document.body, { childList: true, subtree: true });
+        console.log(Profile_Name);
+        // Process the message and send a response back if needed
+        // const response = { farewell: "Goodbye from content script!" };
+        // sendResponse(response);
+    }
+);
+
+async function accessElement(selector: string): Promise<boolean> {
+    const element = document.querySelector(selector);
+
+    if (element) return true;
+    return false;
+}
+
+async function handlePageUpdate(
+    mutationsList: MutationRecord[],
+    observer: MutationObserver
+) {
+    for (const mutation of mutationsList) {
+        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+            const isProfilePage = await accessElement(
+                `main [aria-label='Home timeline'] a[href='/${Profile_Name}/header_photo']`
+            );
+            if (isProfilePage) {
+                console.log("Element found!");
+                break;
+            }
+        }
+    }
+}
+const pageUpdateObserver = new MutationObserver(handlePageUpdate);
+
+pageUpdateObserver.observe(document.body, { childList: true, subtree: true });
 
 // window.addEventListener("load", function () {
 //     accessElement();
@@ -52,8 +69,3 @@
 //     }
 //     return false;
 // }
-
-// chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-//     console.log(sender, request);
-//     sendResponse({ farewell: "goodbye" });
-// });
