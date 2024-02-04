@@ -9,34 +9,61 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// TODO: the website loading state
+// // TODO: save followers num in the extension storage
+// // TODO: know your in the profile page
+// // TODO: get user name from the url
+// // TODO: get follower num
+// TODO: get like num in each post
+// TODO: make the % and replace it
+// TODO: + save the % in the extension storage
+// TODO: + make it stop when he click the icon
+// TODO: + add more functionality (not just the like num)
+// TODO: + add more seating
+// ? high level var (used a lot) => Name_Name
 let Profile_Name;
+let Profile_Followers_Num = null;
+let mainPath = "main [aria-label='Home timeline']";
+let loadRetries = 0;
+let maxLoadRetries = 20;
+// ? Process the message and send a response back if needed
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => __awaiter(void 0, void 0, void 0, function* () {
     let page_URL = new URL(request.url);
-    let pathname = page_URL.pathname;
-    const parts = pathname.split("/");
-    Profile_Name = parts[parts.length - 1];
-    console.log(Profile_Name);
-    // Process the message and send a response back if needed
-    // const response = { farewell: "Goodbye from content script!" };
+    let pathName = page_URL.pathname;
+    const urlPateLevels = pathName.split("/");
+    // ! will only by the right name in the profile page if you want use.
+    Profile_Name = urlPateLevels[urlPateLevels.length - 1];
+    // const response = { Profile_Name: Profile_Name };
     // sendResponse(response);
 }));
-function accessElement(selector) {
+function isElementLoaded(elementPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        const element = document.querySelector(selector);
-        if (element)
+        let element = document.querySelector(elementPath);
+        if (element) {
             return true;
-        return false;
+        }
+        else {
+            return false;
+        }
     });
+}
+function extractNumberFromString(inputString) {
+    const extractedNumber = parseInt(inputString.replace(/\D/g, ""), 10) || null;
+    return extractedNumber;
 }
 function handlePageUpdate(mutationsList, observer) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const mutation of mutationsList) {
             if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-                const isProfilePage = yield accessElement(`main [aria-label='Home timeline'] a[href='/${Profile_Name}/header_photo']`);
-                if (isProfilePage) {
-                    console.log("Element found!");
-                    break;
+                loadRetries++;
+                // ? if this element exist than you are in the profile page (unique to the profile page)
+                const isProfilePage = yield isElementLoaded(`${mainPath} a[href='/${Profile_Name}/header_photo']`);
+                if (isProfilePage && !Profile_Followers_Num) {
+                    // ? when the profile page is loaded and we still does not know the follower num
+                    const isFollowersLoaded = yield isElementLoaded(`${mainPath} a[href='/${Profile_Name}/verified_followers']`);
+                    if (isFollowersLoaded) {
+                        let followers = document.querySelector(`${mainPath} a[href='/${Profile_Name}/verified_followers']`);
+                        Profile_Followers_Num = extractNumberFromString(followers === null || followers === void 0 ? void 0 : followers.textContent);
+                    }
                 }
             }
         }
@@ -44,24 +71,6 @@ function handlePageUpdate(mutationsList, observer) {
 }
 const pageUpdateObserver = new MutationObserver(handlePageUpdate);
 pageUpdateObserver.observe(document.body, { childList: true, subtree: true });
-// window.addEventListener("load", function () {
-//     accessElement();
-//     // Your code to run when the entire page, including external resources, has finished loading
-// });
-// Function to check if the website is fully loaded
-// async function isSiteLoaded(
-//     checkedElement: HTMLElement,
-//     maxRetries: number = 20,
-//     delay: number = 1000
-// ): Promise<boolean> {
-//     let retries = 0;
-//     while (retries < maxRetries) {
-//         if (document.readyState === "complete" && checkedElement) {
-//             // The document is fully loaded
-//             return true;
-//         }
-//         await new Promise((resolve) => setTimeout(resolve, delay));
-//         retries++;
-//     }
-//     return false;
-// }
+if (loadRetries > maxLoadRetries && !Profile_Followers_Num) {
+    pageUpdateObserver.disconnect();
+}

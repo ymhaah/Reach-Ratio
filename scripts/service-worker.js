@@ -1,6 +1,5 @@
 "use strict";
-// ! var naming system :
-// ! high level var (used a lot) => NAME_NAME & his sons
+// service worker / background
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -10,13 +9,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const SUPPORTED_WEBSITES = [
+const Supported_Websites = [
     { URL: "https://twitter.com", TYPE: "SPA" },
 ];
-let CURRENT_URL;
+let Current_Url;
+// ? Check if the current URL matches any of the supported websites
 function isSupportedWebsite(currentURL) {
-    // Check if the current URL matches any of the supported websites
-    return SUPPORTED_WEBSITES.some((site) => currentURL.startsWith(site.URL));
+    return Supported_Websites.some((site) => currentURL.startsWith(site.URL));
 }
 function getCurrentUrl() {
     return new Promise((resolve) => {
@@ -28,25 +27,23 @@ function getCurrentUrl() {
             }
             const URL = tabs[0].url;
             const tabId = tabs[0].id;
-            // Check if the current website is supported
             if (isSupportedWebsite(URL)) {
                 resolve({ URL, tabId });
             }
             else {
-                // Skip processing for unsupported websites
                 resolve(null);
             }
         });
     });
 }
+// ? Send a message with the url to the content script
 function sendCurrentUrl(currentUrl, tabId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Send the message to the content script
             const response = yield new Promise((resolve) => {
                 chrome.tabs.sendMessage(tabId, { url: currentUrl }, resolve);
             });
-            console.log("Received response from content script:", response);
+            // console.log("Received response from content script:", response);
         }
         catch (error) {
             console.error("Error sending message:", error);
@@ -57,24 +54,16 @@ function handelUrl() {
     return __awaiter(this, void 0, void 0, function* () {
         const URL_info = yield getCurrentUrl();
         if (URL_info && URL_info.URL && URL_info.tabId) {
-            CURRENT_URL = URL_info.URL;
-            yield sendCurrentUrl(CURRENT_URL, URL_info.tabId);
+            Current_Url = URL_info.URL;
+            yield sendCurrentUrl(Current_Url, URL_info.tabId);
         }
         else {
-            CURRENT_URL = null;
-            console.log("CURRENT_URL:", CURRENT_URL);
+            Current_Url = null;
         }
     });
 }
-// Initial processing
 handelUrl();
-// Listen for history state changes (for SPAs)
+// ? Listen for history state changes (for SPAs)
 chrome.webNavigation.onHistoryStateUpdated.addListener(handelUrl);
-// Listen for page load events (for regular pages)
+// ? Listen for page load events (for regular pages)
 chrome.webNavigation.onCompleted.addListener(handelUrl);
-// "exclude_matches": [
-//     "https://twitter.com/explore",
-//     "https://twitter.com/home",
-//     "https://twitter.com/notifications",
-//     "https://twitter.com/messages"
-// ],
