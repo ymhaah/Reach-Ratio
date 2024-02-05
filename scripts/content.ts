@@ -5,6 +5,7 @@
 // // TODO: get user name from the url
 // // TODO: get follower num
 // TODO: get like num in each post
+// TODO: retweet vs tweet vs the not tweet things (from the user avatar image link)
 // TODO: make the % and replace it
 // TODO: + save the % in the extension storage
 // TODO: + make it stop when he click the icon
@@ -17,6 +18,7 @@ let Profile_Name: string | null;
 let Profile_Followers_Num: number | null = null;
 
 let mainPath = "main [aria-label='Home timeline']";
+let tweetPath = "section article[data-testid='tweet']";
 
 let loadRetries: number = 0;
 let maxLoadRetries: number = 20;
@@ -31,13 +33,20 @@ chrome.runtime.onMessage.addListener(
         // ! will only by the right name in the profile page if you want use.
         Profile_Name = urlPateLevels[urlPateLevels.length - 1];
 
-        // const response = { Profile_Name: Profile_Name };
-        // sendResponse(response);
+        const response = { Profile_Name: Profile_Name };
+        sendResponse(response);
     }
 );
 
-async function isElementLoaded(elementPath: string): Promise<boolean> {
+async function isElementLoaded(
+    elementPath: string,
+    father?: Element | null
+): Promise<boolean> {
     let element = document.querySelector(elementPath);
+
+    if (father) {
+        element = father.querySelector(elementPath);
+    }
 
     if (element) {
         return true;
@@ -60,6 +69,21 @@ async function handlePageUpdate(
         if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
             loadRetries++;
 
+            // const addedElement = mutation.addedNodes[0] as HTMLElement;
+
+            // const isAddedElementTweet = await isElementLoaded(
+            //     `[data-testid="like"]`,
+            //     addedElement
+            // );
+
+            // if (isAddedElementTweet) {
+            //     let likeNum =
+            //         addedElement.querySelector(
+            //             `[data-testid="like"]`
+            //         )?.textContent;
+            //     console.log(likeNum);
+            // }
+
             // ? if this element exist than you are in the profile page (unique to the profile page)
             const isProfilePage = await isElementLoaded(
                 `${mainPath} a[href='/${Profile_Name}/header_photo']`
@@ -76,9 +100,12 @@ async function handlePageUpdate(
                     let followers = document.querySelector(
                         `${mainPath} a[href='/${Profile_Name}/verified_followers']`
                     );
+
                     Profile_Followers_Num = extractNumberFromString(
                         followers?.textContent as string
                     );
+
+                    console.log(Profile_Followers_Num);
                 }
             }
         }
@@ -87,6 +114,6 @@ async function handlePageUpdate(
 const pageUpdateObserver = new MutationObserver(handlePageUpdate);
 
 pageUpdateObserver.observe(document.body, { childList: true, subtree: true });
-if (loadRetries > maxLoadRetries && !Profile_Followers_Num) {
-    pageUpdateObserver.disconnect();
-}
+// if (loadRetries > maxLoadRetries && !Profile_Followers_Num) {
+//     pageUpdateObserver.disconnect();
+// }

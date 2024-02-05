@@ -30,12 +30,6 @@
             "all_frames": true
         }
     ],
-    "exclude_matches": [
-        "https://twitter.com/explore",
-        "https://twitter.com/home",
-        "https://twitter.com/notifications",
-        "https://twitter.com/messages"
-    ],
     "background": {
         "service_worker": "scripts/service-worker.js",
         "type": "module"

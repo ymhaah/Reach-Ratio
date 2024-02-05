@@ -43,7 +43,7 @@ function sendCurrentUrl(currentUrl, tabId) {
             const response = yield new Promise((resolve) => {
                 chrome.tabs.sendMessage(tabId, { url: currentUrl }, resolve);
             });
-            // console.log("Received response from content script:", response);
+            console.log("Received response from content script:", response);
         }
         catch (error) {
             console.error("Error sending message:", error);
@@ -67,3 +67,9 @@ handelUrl();
 chrome.webNavigation.onHistoryStateUpdated.addListener(handelUrl);
 // ? Listen for page load events (for regular pages)
 chrome.webNavigation.onCompleted.addListener(handelUrl);
+// "exclude_matches": [
+//     "https://twitter.com/explore",
+//     "https://twitter.com/home",
+//     "https://twitter.com/notifications",
+//     "https://twitter.com/messages"
+// ]

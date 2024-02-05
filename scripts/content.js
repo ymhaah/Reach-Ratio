@@ -14,6 +14,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 // // TODO: get user name from the url
 // // TODO: get follower num
 // TODO: get like num in each post
+// TODO: retweet vs tweet vs the not tweet things (from the user avatar image link)
 // TODO: make the % and replace it
 // TODO: + save the % in the extension storage
 // TODO: + make it stop when he click the icon
@@ -23,6 +24,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 let Profile_Name;
 let Profile_Followers_Num = null;
 let mainPath = "main [aria-label='Home timeline']";
+let tweetPath = "section article[data-testid='tweet']";
 let loadRetries = 0;
 let maxLoadRetries = 20;
 // ? Process the message and send a response back if needed
@@ -32,12 +34,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => __awaite
     const urlPateLevels = pathName.split("/");
     // ! will only by the right name in the profile page if you want use.
     Profile_Name = urlPateLevels[urlPateLevels.length - 1];
-    // const response = { Profile_Name: Profile_Name };
-    // sendResponse(response);
+    const response = { Profile_Name: Profile_Name };
+    sendResponse(response);
 }));
-function isElementLoaded(elementPath) {
+function isElementLoaded(elementPath, father) {
     return __awaiter(this, void 0, void 0, function* () {
         let element = document.querySelector(elementPath);
+        if (father) {
+            element = father.querySelector(elementPath);
+        }
         if (element) {
             return true;
         }
@@ -55,6 +60,18 @@ function handlePageUpdate(mutationsList, observer) {
         for (const mutation of mutationsList) {
             if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
                 loadRetries++;
+                // const addedElement = mutation.addedNodes[0] as HTMLElement;
+                // const isAddedElementTweet = await isElementLoaded(
+                //     `[data-testid="like"]`,
+                //     addedElement
+                // );
+                // if (isAddedElementTweet) {
+                //     let likeNum =
+                //         addedElement.querySelector(
+                //             `[data-testid="like"]`
+                //         )?.textContent;
+                //     console.log(likeNum);
+                // }
                 // ? if this element exist than you are in the profile page (unique to the profile page)
                 const isProfilePage = yield isElementLoaded(`${mainPath} a[href='/${Profile_Name}/header_photo']`);
                 if (isProfilePage && !Profile_Followers_Num) {
@@ -63,6 +80,7 @@ function handlePageUpdate(mutationsList, observer) {
                     if (isFollowersLoaded) {
                         let followers = document.querySelector(`${mainPath} a[href='/${Profile_Name}/verified_followers']`);
                         Profile_Followers_Num = extractNumberFromString(followers === null || followers === void 0 ? void 0 : followers.textContent);
+                        console.log(Profile_Followers_Num);
                     }
                 }
             }
@@ -71,6 +89,6 @@ function handlePageUpdate(mutationsList, observer) {
 }
 const pageUpdateObserver = new MutationObserver(handlePageUpdate);
 pageUpdateObserver.observe(document.body, { childList: true, subtree: true });
-if (loadRetries > maxLoadRetries && !Profile_Followers_Num) {
-    pageUpdateObserver.disconnect();
-}
+// if (loadRetries > maxLoadRetries && !Profile_Followers_Num) {
+//     pageUpdateObserver.disconnect();
+// }
