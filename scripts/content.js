@@ -8,8 +8,9 @@
 // // TODO: make the % and replace it
 // // take a break (leetCode and freelance)
 // // TODO: 1- #Bug, fix the father.querySelector error
-// TODO: 2- make the code smaller and easer to read (handlePageUpdate)
-// TODO: 3- add the % as an ::after (and some css; make it look good)
+// TODO: add the % as an ::after (and some css; make it look good)
+// TODO: make the code smaller and easer to read (handlePageUpdate)
+// TODO: #Bug fix the 123K return 123 not 123000 (use the aria or make a function)
 // TODO: #Bug, when a tweet is already loaded it doesn't work
 // TODO: retweet vs tweet vs the not tweet things (from the user avatar image link)
 // TODO: + save the % in the extension storage
@@ -48,21 +49,18 @@ function isElementLoaded(elementPath, father) {
     }
 }
 function extractNumberFromString(inputString) {
-    const extractedNumber = parseInt(inputString.replace(/\D/g, ""), 10) || null;
+    const extractedNumber = parseInt(inputString.replace(/\D/g, ""), 10) || 0;
     return extractedNumber;
 }
 function calculatePercentage(engagementNum, followerNum) {
-    if (engagementNum === 0) {
-        return "0%";
-    }
-    if (followerNum === 0) {
-        return `${engagementNum}X`;
+    if (engagementNum === 0 || followerNum === 0) {
+        return null;
     }
     const percentage = Math.round((engagementNum / followerNum) * 100);
     return `${percentage}%`;
 }
 function handlePageUpdate(mutationsList, observer) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b;
     for (const mutation of mutationsList) {
         if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
             loadRetries++;
@@ -82,30 +80,93 @@ function handlePageUpdate(mutationsList, observer) {
                     const isAddedElementMyTweet = isElementLoaded(`[href^="/${Profile_Name}/status/"][href$="/analytics"]`, addedElement);
                     if (isAddedElementMyTweet &&
                         addedElement instanceof HTMLElement) {
-                        const isReply = isElementLoaded(`[data-testid="reply"]`, addedElement);
-                        if (isReply) {
-                            let reply = addedElement.querySelector(`[data-testid="reply"]`);
-                            Tweet_Reply_Num = extractNumberFromString((_b = reply === null || reply === void 0 ? void 0 : reply.textContent) !== null && _b !== void 0 ? _b : "");
-                            reply.textContent = calculatePercentage(Tweet_Reply_Num, Profile_Followers_Num);
+                        const tweetSelectors = [
+                            `[data-testid="reply"]`,
+                            `[data-testid="retweet"]`,
+                            `[data-testid="like"]`,
+                            `[href^="/${Profile_Name}/status/"][href$="/analytics"]`,
+                        ];
+                        for (const selector of tweetSelectors) {
+                            const isElementPresent = isElementLoaded(selector, addedElement);
+                            if (isElementPresent) {
+                                const element = addedElement.querySelector(selector);
+                                const tweetNum = extractNumberFromString((_b = element === null || element === void 0 ? void 0 : element.textContent) !== null && _b !== void 0 ? _b : "");
+                                const percentage = calculatePercentage(tweetNum, Profile_Followers_Num);
+                                if (percentage) {
+                                    // element?.style.cssText = "position: relative;"
+                                    let percentageDiv = document.createElement("div");
+                                    percentageDiv.classList.add("Reach-Ratio");
+                                    // percentageDiv.setAttribute('data-engagement', percentage);
+                                    percentageDiv.textContent = percentage;
+                                    element.appendChild(percentageDiv);
+                                }
+                            }
                         }
-                        const isRetweet = isElementLoaded(`[data-testid="retweet"]`, addedElement);
-                        if (isRetweet) {
-                            let retweet = addedElement.querySelector(`[data-testid="retweet"]`);
-                            Tweet_Retweet_Num = extractNumberFromString((_c = retweet === null || retweet === void 0 ? void 0 : retweet.textContent) !== null && _c !== void 0 ? _c : "");
-                            retweet.textContent = calculatePercentage(Tweet_Retweet_Num, Profile_Followers_Num);
-                        }
-                        const isLike = isElementLoaded(`[data-testid="like"]`, addedElement);
-                        if (isLike) {
-                            let like = addedElement.querySelector(`[data-testid="like"]`);
-                            Tweet_Like_Num = extractNumberFromString((_d = like === null || like === void 0 ? void 0 : like.textContent) !== null && _d !== void 0 ? _d : "");
-                            like.textContent = calculatePercentage(Tweet_Like_Num, Profile_Followers_Num);
-                        }
-                        const isStatus = isElementLoaded(`[href^="/${Profile_Name}/status/"][href$="/analytics"]`, addedElement);
-                        if (isStatus) {
-                            let status = addedElement.querySelector(`[href^="/${Profile_Name}/status/"][href$="/analytics"]`);
-                            Tweet_status_Num = extractNumberFromString((_e = status === null || status === void 0 ? void 0 : status.textContent) !== null && _e !== void 0 ? _e : "");
-                            status.textContent = calculatePercentage(Tweet_status_Num, Profile_Followers_Num);
-                        }
+                        // const isReply = isElementLoaded(
+                        //     `[data-testid="reply"]`,
+                        //     addedElement
+                        // );
+                        // if (isReply) {
+                        //     let reply = addedElement.querySelector(
+                        //         `[data-testid="reply"]`
+                        //     );
+                        //     Tweet_Reply_Num = extractNumberFromString(
+                        //         reply?.textContent ?? ""
+                        //     );
+                        //     reply!.textContent = calculatePercentage(
+                        //         Tweet_Reply_Num as number,
+                        //         Profile_Followers_Num as number
+                        //     );
+                        // }
+                        // const isRetweet = isElementLoaded(
+                        //     `[data-testid="retweet"]`,
+                        //     addedElement
+                        // );
+                        // if (isRetweet) {
+                        //     let retweet = addedElement.querySelector(
+                        //         `[data-testid="retweet"]`
+                        //     );
+                        //     Tweet_Retweet_Num = extractNumberFromString(
+                        //         retweet?.textContent ?? ""
+                        //     );
+                        //     retweet!.textContent = calculatePercentage(
+                        //         Tweet_Retweet_Num as number,
+                        //         Profile_Followers_Num as number
+                        //     );
+                        // }
+                        // const isLike = isElementLoaded(
+                        //     `[data-testid="like"]`,
+                        //     addedElement
+                        // );
+                        // if (isLike) {
+                        //     let like =
+                        //         addedElement.querySelector(
+                        //             `[data-testid="like"]`
+                        //         );
+                        //     Tweet_Like_Num = extractNumberFromString(
+                        //         like?.textContent ?? ""
+                        //     );
+                        //     like!.textContent = calculatePercentage(
+                        //         Tweet_Like_Num as number,
+                        //         Profile_Followers_Num as number
+                        //     );
+                        // }
+                        // const isStatus = isElementLoaded(
+                        //     `[href^="/${Profile_Name}/status/"][href$="/analytics"]`,
+                        //     addedElement
+                        // );
+                        // if (isStatus) {
+                        //     let status = addedElement.querySelector(
+                        //         `[href^="/${Profile_Name}/status/"][href$="/analytics"]`
+                        //     );
+                        //     Tweet_status_Num = extractNumberFromString(
+                        //         status?.textContent ?? ""
+                        //     );
+                        //     status!.textContent = calculatePercentage(
+                        //         Tweet_status_Num as number,
+                        //         Profile_Followers_Num as number
+                        //     );
+                        // }
                     }
                 }
             }

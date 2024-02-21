@@ -27,6 +27,7 @@
         {
             "matches": ["https://twitter.com/*"],
             "js": ["./scripts/content.js"],
+            "css": ["./content.css"],
             "all_frames": true
         }
     ],
