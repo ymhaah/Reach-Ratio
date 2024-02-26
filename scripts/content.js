@@ -49,14 +49,45 @@ function isElementLoaded(elementPath, father) {
     }
 }
 function extractNumberFromString(inputString) {
+    // Check if the input string contains a 'K', 'M', 'B', or 'T' suffix
+    if (/\b[KkMmBbTt]\b/.test(inputString)) {
+        return convertToNumber(inputString);
+    }
+    // If no suffix is present, extract the number using the original logic
     const extractedNumber = parseInt(inputString.replace(/\D/g, ""), 10) || 0;
     return extractedNumber;
+}
+function convertToNumber(input) {
+    const regex = /^(\d+(\.\d+)?)\s*([KkMmBbTt])?$/;
+    const match = input.match(regex);
+    if (match) {
+        const baseNumber = parseFloat(match[1]);
+        const multiplier = (() => {
+            switch ((match[3] || "").toUpperCase()) {
+                case "K":
+                    return 1000;
+                case "M":
+                    return 1000000;
+                case "B":
+                    return 1000000000;
+                case "T":
+                    return 1000000000000;
+                default:
+                    return 1;
+            }
+        })();
+        return baseNumber * multiplier;
+    }
+    return 0;
 }
 function calculatePercentage(engagementNum, followerNum) {
     if (engagementNum === 0 || followerNum === 0) {
         return null;
     }
-    const percentage = Math.round((engagementNum / followerNum) * 100);
+    let percentage = Math.floor((engagementNum / followerNum) * 100);
+    if (percentage < 1) {
+        percentage = (engagementNum / followerNum) * 100;
+    }
     return `${percentage}%`;
 }
 function handlePageUpdate(mutationsList, observer) {
@@ -76,6 +107,7 @@ function handlePageUpdate(mutationsList, observer) {
                 const isFollowersLoaded = isElementLoaded(`${mainPath} a[href='/${Profile_Name}/verified_followers']`);
                 if (isFollowersLoaded) {
                     let followers = document.querySelector(`${mainPath} a[href='/${Profile_Name}/verified_followers']`);
+                    console.log(followers);
                     Profile_Followers_Num = extractNumberFromString((_a = followers === null || followers === void 0 ? void 0 : followers.textContent) !== null && _a !== void 0 ? _a : "");
                     const isAddedElementMyTweet = isElementLoaded(`[href^="/${Profile_Name}/status/"][href$="/analytics"]`, addedElement);
                     if (isAddedElementMyTweet &&

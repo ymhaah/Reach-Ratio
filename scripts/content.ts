@@ -63,11 +63,45 @@ function isElementLoaded(
         return element !== null;
     }
 }
-
 function extractNumberFromString(inputString: string): number {
+    // Check if the input string contains a 'K', 'M', 'B', or 'T' suffix
+    if (/\b[KkMmBbTt]\b/.test(inputString)) {
+        return convertToNumber(inputString);
+    }
+
+    // If no suffix is present, extract the number using the original logic
     const extractedNumber = parseInt(inputString.replace(/\D/g, ""), 10) || 0;
     return extractedNumber;
 }
+
+function convertToNumber(input: string): number {
+    const regex = /^(\d+(\.\d+)?)\s*([KkMmBbTt])?$/;
+    const match = input.match(regex);
+
+    if (match) {
+        const baseNumber = parseFloat(match[1]);
+
+        const multiplier = (() => {
+            switch ((match[3] || "").toUpperCase()) {
+                case "K":
+                    return 1000;
+                case "M":
+                    return 1000000;
+                case "B":
+                    return 1000000000;
+                case "T":
+                    return 1000000000000;
+                default:
+                    return 1;
+            }
+        })();
+
+        return baseNumber * multiplier;
+    }
+
+    return 0;
+}
+
 function calculatePercentage(
     engagementNum: number,
     followerNum: number
@@ -76,7 +110,10 @@ function calculatePercentage(
         return null;
     }
 
-    const percentage = Math.round((engagementNum / followerNum) * 100);
+    let percentage = Math.floor((engagementNum / followerNum) * 100);
+    if (percentage < 1) {
+        percentage = (engagementNum / followerNum) * 100;
+    }
     return `${percentage}%`;
 }
 
@@ -110,6 +147,8 @@ function handlePageUpdate(
                     let followers = document.querySelector(
                         `${mainPath} a[href='/${Profile_Name}/verified_followers']`
                     );
+
+                    console.log(followers);
 
                     Profile_Followers_Num = extractNumberFromString(
                         followers?.textContent ?? ""
