@@ -1,146 +1,107 @@
 // contentScript.js
 
-// // TODO: save followers num in the extension storage
-// // TODO: know your in the profile page
-// // TODO: get user name from the url
-// // TODO: get follower num
-// // TODO: get like num in each post
-// // TODO: make the % and replace it
-// // take a break (leetCode and freelance)
-// // TODO: 1- #Bug, fix the father.querySelector error
-// // TODO: #Bug fix the 123K return 123 not 123000 (use the aria or make a function)
-// // TODO: retweet vs tweet vs the not tweet things
-// TODO: make it look good with some css
-// TODO: make the code smaller and easer to read (handlePageUpdate)
+let Tweets: Set<Element> = new Set();
 
-// TODO: #Bug, when a tweet is already loaded it doesn't work
-// TODO: #Bug, the first tweet duplicate
+let ProfileName = handleUrl(window.location.href);
 
-// TODO: + add sating
-// TODO: + add an option for every way % can be (what happen if less than 1%, ...)
-// TODO: + save the % in the extension storage
-// TODO: + get Followers num when not in the profile page
+let ProfileFollowersNum: number | null = null;
 
-// ? high level var (used a lot) => Name_Name
+let loadRetries = 0;
+const maxLoadRetries = 30;
 
-let Profile_Followers_Num: number | null = null;
+const mainPath = "main [aria-label='Home timeline']";
+const tweetPath = "section article[data-testid='tweet']";
+const followersElementPath = `${mainPath} a[href='/${ProfileName}/verified_followers']`;
 
-let Tweet_Reply_Num: number | null = 0;
-let Tweet_Retweet_Num: number | null = 0;
-let Tweet_Like_Num: number | null = 0;
-let Tweet_status_Num: number | null = 0;
-
-let mainPath = "main [aria-label='Home timeline']";
-
-// ? get url to check if in profile
+// ? update profile name
 chrome.runtime.onMessage.addListener(
     (request: { url: string }, sender, sendResponse) => {
-        let page_URL = new URL(request.url);
-        let pathName = page_URL.pathname;
-        const urlPateLevels = pathName.split("/");
+        ProfileName = handleUrl(request.url);
 
-        let ProfileName = urlPateLevels[urlPateLevels.length - 1];
+        ProfileFollowersNum = getFollowersNum(ProfileName);
 
-        let ProfileFollowersNum = getFollowersNum(ProfileName);
         if (ProfileFollowersNum) {
-            let tweetsArray = getTweets(ProfileName);
-            console.log(tweetsArray);
-            addPercentageToTweet(tweetsArray, ProfileName, ProfileFollowersNum);
+            getTweetsDom(ProfileName);
+            addPercentageToTweet(Tweets, ProfileName, ProfileFollowersNum);
         }
 
-        // ############
         sendResponse({ ProfileName: ProfileName });
     }
 );
 
-function getFollowersNum(ProfileName: string): number | null {
-    const followersElementPath = `${mainPath} a[href='/${ProfileName}/verified_followers']`;
-    let loadRetries = 0;
-    const maxLoadRetries = 30;
-
-    const extractFollowers = (): number | null => {
-        const followersElement = document.querySelector(followersElementPath);
-        if (followersElement) {
-            return extractNumberFromString(followersElement.textContent ?? "");
-        }
-        return null;
-    };
-
-    const pageUpdateObserver = new MutationObserver(
-        (mutationsList: MutationRecord[]) => {
-            for (const mutation of mutationsList) {
-                if (mutation.type === "childList") {
-                    const addedElement = mutation.addedNodes[0] as HTMLElement;
-                    if (isElementLoaded(followersElementPath, addedElement)) {
-                        const followers = extractFollowers();
-                        if (followers !== null) {
-                            pageUpdateObserver.disconnect();
-                            return followers;
-                        }
-                    } else {
-                        loadRetries++;
-                    }
-                    if (loadRetries > maxLoadRetries) {
-                        pageUpdateObserver.disconnect();
-                        return null;
-                    }
-                }
-            }
+function getTweetsDom(ProfileName: string) {
+    let tweetArr = Array.from(document.querySelectorAll(tweetPath)).filter(
+        (tweet: Element) => {
+            const isAddedElementMyTweet = isElementLoaded(
+                `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
+                tweet
+            );
+            return isAddedElementMyTweet && tweet;
         }
     );
-
-    pageUpdateObserver.observe(document.body, {
-        childList: true,
-        subtree: true,
+    tweetArr.forEach((tweet) => {
+        Tweets.add(tweet);
     });
-
-    return extractFollowers();
 }
+getTweetsDom(ProfileName);
 
-function getTweets(ProfileName: string): Element[] {
-    const tweetPath = "section article[data-testid='tweet']";
+const pageUpdateObserver = new MutationObserver(
+    (mutationsList: MutationRecord[]) => {
+        for (const mutation of mutationsList) {
+            if (mutation.type === "childList") {
+                const addedElement = mutation.addedNodes[0] as HTMLElement;
 
-    const tweetsDom = document.querySelectorAll(tweetPath);
-    const Tweets = new Set<Element>(tweetsDom);
+                ProfileFollowersNum = getFollowersNum(ProfileName);
 
-    const filteredTweets = Array.from(Tweets).filter((tweet) => {
-        const isAddedElementMyTweet = isElementLoaded(
-            `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
-            tweet
-        );
-        return isAddedElementMyTweet;
-    });
-
-    const pageUpdateObserver = new MutationObserver(
-        (mutationsList: MutationRecord[], observer: MutationObserver) => {
-            mutationsList.forEach((mutation) => {
-                if (
-                    mutation.type === "childList" &&
-                    mutation.addedNodes.length > 0
-                ) {
-                    const addedElement = mutation.addedNodes[0] as HTMLElement;
-
+                if (ProfileFollowersNum) {
                     const isAddedElementMyTweet = isElementLoaded(
                         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
                         addedElement
                     );
-                    if (isAddedElementMyTweet) {
+                    if (isAddedElementMyTweet && addedElement) {
                         Tweets.add(addedElement);
                     }
+                    addPercentageToTweet(
+                        Tweets,
+                        ProfileName,
+                        ProfileFollowersNum
+                    );
+                } else {
+                    loadRetries++;
                 }
-            });
+                if (loadRetries > maxLoadRetries) {
+                    pageUpdateObserver.disconnect();
+                }
+            }
         }
-    );
+    }
+);
 
-    pageUpdateObserver.observe(document.body, {
-        childList: true,
-        subtree: true,
-    });
+pageUpdateObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+});
 
-    return Array.from(Tweets);
+function getFollowersNum(ProfileName: string): number | null {
+    let isProfileLoaded = isElementLoaded(followersElementPath);
+
+    if (isProfileLoaded) {
+        const followersElement = document.querySelector(followersElementPath);
+
+        const followers = extractNumberFromString(
+            followersElement?.textContent ?? ""
+        );
+
+        return followers;
+    }
+
+    return null;
 }
+
+function getTweetsObserver(ProfileName: string, tweet: Element) {}
+
 function addPercentageToTweet(
-    tweetsArray: Element[],
+    tweetsSet: Set<Element>,
     ProfileName: string,
     FollowersNum: number
 ) {
@@ -151,7 +112,7 @@ function addPercentageToTweet(
         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
     ];
 
-    tweetsArray.forEach((tweet) => {
+    tweetsSet.forEach((tweet) => {
         tweetSelectors.forEach((selector) => {
             const element = tweet.querySelector(selector) as HTMLElement | null;
             if (element) {
@@ -175,6 +136,15 @@ function addPercentageToTweet(
     });
 }
 
+function handleUrl(url: string): string {
+    let page_URL = new URL(url);
+    let pathName = page_URL.pathname;
+    const urlPateLevels = pathName.split("/");
+
+    let ProfileName = urlPateLevels[urlPateLevels.length - 1];
+
+    return ProfileName;
+}
 function isElementLoaded(
     elementPath: string,
     father?: Element | null
@@ -237,3 +207,24 @@ function calculatePercentage(
     }
     return `${percentage}%`;
 }
+
+// // TODO: save followers num in the extension storage
+// // TODO: know your in the profile page
+// // TODO: get user name from the url
+// // TODO: get follower num
+// // TODO: get like num in each post
+// // TODO: make the % and replace it
+// // take a break (leetCode and freelance)
+// // TODO: 1- #Bug, fix the father.querySelector error
+// // TODO: #Bug fix the 123K return 123 not 123000 (use the aria or make a function)
+// // TODO: retweet vs tweet vs the not tweet things
+// TODO: make it look good with some css
+// TODO: make the code smaller and easer to read (handlePageUpdate)
+
+// TODO: #Bug, when a tweet is already loaded it doesn't work
+// TODO: #Bug, the first tweet duplicate
+
+// TODO: + add sating
+// TODO: + add an option for every way % can be (what happen if less than 1%, ...)
+// TODO: + save the % in the extension storage
+// TODO: + get Followers num when not in the profile page
