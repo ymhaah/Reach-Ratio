@@ -11,6 +11,7 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
+        "arrive": "^2.4.1",
         "chrome-types": "^0.1.250"
     }
 }

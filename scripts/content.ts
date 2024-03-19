@@ -1,5 +1,7 @@
 // contentScript.js
 
+// import arrive from "arrive";
+
 let Tweets: Set<Element> = new Set();
 
 let ProfileName = handleUrl(window.location.href);
@@ -20,73 +22,92 @@ chrome.runtime.onMessage.addListener(
 
         ProfileFollowersNum = getFollowersNum(ProfileName);
 
-        if (ProfileFollowersNum) {
-            getTweetsDom(ProfileName);
-            addPercentageToTweet(Tweets, ProfileName, ProfileFollowersNum);
-        }
+        // const tweetsDom = document.querySelectorAll(tweetPath);
 
+        // tweetsDom.forEach((tweet) => {
+        //     const isAddedElementMyTweet = isElementLoaded(
+        //         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
+        //         tweet
+        //     );
+        //     if (isAddedElementMyTweet && ProfileFollowersNum) {
+        //         addPercentageToTweet(tweet, ProfileName, ProfileFollowersNum);
+        //     }
+        // });
+        // pageUpdateObserver.observe(document.body, {
+        //     childList: true,
+        //     subtree: true,
+        // });
+        // reObserve();
         sendResponse({ ProfileName: ProfileName });
     }
 );
 
-function getTweetsDom(ProfileName: string) {
-    let tweetArr = Array.from(document.querySelectorAll(tweetPath)).filter(
-        (tweet: Element) => {
-            const isAddedElementMyTweet = isElementLoaded(
-                `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
-                tweet
-            );
-            return isAddedElementMyTweet && tweet;
-        }
-    );
-    tweetArr.forEach((tweet) => {
-        Tweets.add(tweet);
-    });
-}
-getTweetsDom(ProfileName);
+// const pageUpdateObserver = new MutationObserver(
+//     (mutationsList: MutationRecord[]) => {
+//         for (const mutation of mutationsList) {
+//             console.log("o");
+//             if (
+//                 mutation.type === "childList" &&
+//                 mutation.addedNodes.length > 0
+//             ) {
+//                 const addedElement = mutation.addedNodes[0] as HTMLElement;
 
-const pageUpdateObserver = new MutationObserver(
-    (mutationsList: MutationRecord[]) => {
-        for (const mutation of mutationsList) {
-            if (mutation.type === "childList") {
-                const addedElement = mutation.addedNodes[0] as HTMLElement;
+//                 ProfileFollowersNum = getFollowersNum(ProfileName);
+//                 if (ProfileFollowersNum) {
+//                     const isAddedElementMyTweet = isElementLoaded(
+//                         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
+//                         addedElement
+//                     );
+//                     if (isAddedElementMyTweet && addedElement) {
+//                         Tweets.add(addedElement);
+//                         addPercentageToTweet(
+//                             addedElement,
+//                             ProfileName,
+//                             ProfileFollowersNum
+//                         );
+//                     }
+//                 } else {
+//                     loadRetries++;
+//                 }
+//                 if (loadRetries > maxLoadRetries) {
+//                     pageUpdateObserver.disconnect();
+//                 }
+//             }
+//         }
+//     }
+// );
 
-                ProfileFollowersNum = getFollowersNum(ProfileName);
+// function reObserve() {
+//     const isMainLoaded = isElementLoaded("main");
+//     if (isMainLoaded) {
+//         pageUpdateObserver.disconnect();
 
-                if (ProfileFollowersNum) {
-                    const isAddedElementMyTweet = isElementLoaded(
-                        `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
-                        addedElement
-                    );
-                    if (isAddedElementMyTweet && addedElement) {
-                        Tweets.add(addedElement);
-                    }
-                    addPercentageToTweet(
-                        Tweets,
-                        ProfileName,
-                        ProfileFollowersNum
-                    );
-                } else {
-                    loadRetries++;
-                }
-                if (loadRetries > maxLoadRetries) {
-                    pageUpdateObserver.disconnect();
-                }
-            }
-        }
-    }
-);
+//         console.log("re");
 
-pageUpdateObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-});
+//         pageUpdateObserver.observe(
+//             document.querySelector("main") as HTMLElement,
+//             {
+//                 childList: true,
+//                 subtree: true,
+//             }
+//         );
+//     }
+// }
+
+// pageUpdateObserver.observe(document.body, {
+//     childList: true,
+//     subtree: true,
+// });
 
 function getFollowersNum(ProfileName: string): number | null {
-    let isProfileLoaded = isElementLoaded(followersElementPath);
+    let isProfileLoaded = isElementLoaded(
+        `${mainPath} a[href='/${ProfileName}/verified_followers']`
+    );
 
     if (isProfileLoaded) {
-        const followersElement = document.querySelector(followersElementPath);
+        const followersElement = document.querySelector(
+            `${mainPath} a[href='/${ProfileName}/verified_followers']`
+        );
 
         const followers = extractNumberFromString(
             followersElement?.textContent ?? ""
@@ -98,10 +119,8 @@ function getFollowersNum(ProfileName: string): number | null {
     return null;
 }
 
-function getTweetsObserver(ProfileName: string, tweet: Element) {}
-
 function addPercentageToTweet(
-    tweetsSet: Set<Element>,
+    tweet: Element,
     ProfileName: string,
     FollowersNum: number
 ) {
@@ -112,27 +131,23 @@ function addPercentageToTweet(
         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
     ];
 
-    tweetsSet.forEach((tweet) => {
-        tweetSelectors.forEach((selector) => {
-            const element = tweet.querySelector(selector) as HTMLElement | null;
-            if (element) {
-                const tweetNum = extractNumberFromString(
-                    element.textContent || ""
-                );
-                const percentage = calculatePercentage(tweetNum, FollowersNum);
-                if (percentage) {
-                    let percentageDiv = document.createElement("div");
+    tweetSelectors.forEach((selector) => {
+        const element = tweet.querySelector(selector) as HTMLElement | null;
+        if (element) {
+            const tweetNum = extractNumberFromString(element.textContent || "");
+            const percentage = calculatePercentage(tweetNum, FollowersNum);
+            if (percentage) {
+                let percentageDiv = document.createElement("div");
 
-                    percentageDiv.classList.add("Reach-Ratio");
+                percentageDiv.classList.add("Reach-Ratio");
 
-                    // percentageDiv.setAttribute('data-engagement', percentage);
+                // percentageDiv.setAttribute('data-engagement', percentage);
 
-                    percentageDiv.textContent = percentage;
+                percentageDiv.textContent = percentage;
 
-                    element.appendChild(percentageDiv);
-                }
+                element.appendChild(percentageDiv);
             }
-        });
+        }
     });
 }
 
