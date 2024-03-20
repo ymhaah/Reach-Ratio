@@ -265,7 +265,7 @@ function calculatePercentage(
 // // TODO: make it look good
 // // TODO: #Bug, when a tweet is already loaded it doesn't work
 // // TODO: #Bug, the first tweet duplicate
-// TODO: make the code smaller and easer to read (handlePageUpdate)
+// // TODO: make the code smaller and easer to read (handlePageUpdate)
 
 // TODO: + add options
 // TODO: + add an option for every way % can be (what happen if less than 1%, ...)
