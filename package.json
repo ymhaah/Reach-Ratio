@@ -1,8 +1,28 @@
 {
     "name": "reach-ratio",
     "private": false,
-    "version": "0.0.1",
+    "version": "1.0.0",
     "type": "module",
+    "license": "MIT",
+    "author": {
+        "name": "Youssef Hefnawy",
+        "email": "ymhaah250@gmail.com"
+    },
+    "description": "A simple Chrome extension, See Your Real Engagement!, converts interactions on Twitter into a percentage relative to the number of your followers and the level of interaction.",
+    "contributors": [
+        {
+            "name": "Youssef Hefnawy",
+            "email": "ymhaah250@gmail.com"
+        }
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ymhaah/Reach-Ratio"
+    },
+    "bugs": {
+        "url": "https://github.com/ymhaah/Reach-Ratio/issues"
+    },
+    "homepage": "https://github.com/ymhaah/Reach-Ratio",
     "scripts": {
         "build": "tsc"
     },
@@ -11,7 +31,6 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
-        "arrive": "^2.4.1",
         "chrome-types": "^0.1.250"
     }
 }

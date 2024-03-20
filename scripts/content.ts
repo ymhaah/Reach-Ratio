@@ -1,9 +1,5 @@
 // contentScript.js
 
-// import arrive from "arrive";
-
-let Tweets: Set<Element> = new Set();
-
 let ProfileName = handleUrl(window.location.href);
 
 let ProfileFollowersNum: number | null = null;
@@ -13,92 +9,104 @@ const maxLoadRetries = 30;
 
 const mainPath = "main [aria-label='Home timeline']";
 const tweetPath = "section article[data-testid='tweet']";
-const followersElementPath = `${mainPath} a[href='/${ProfileName}/verified_followers']`;
 
-// ? update profile name
+// ? get a message when the page url change
 chrome.runtime.onMessage.addListener(
     (request: { url: string }, sender, sendResponse) => {
+        // Extract profile name from the URL
         ProfileName = handleUrl(request.url);
-
         ProfileFollowersNum = getFollowersNum(ProfileName);
 
-        // const tweetsDom = document.querySelectorAll(tweetPath);
+        const tweetsDom = document.querySelectorAll(tweetPath);
 
-        // tweetsDom.forEach((tweet) => {
-        //     const isAddedElementMyTweet = isElementLoaded(
-        //         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
-        //         tweet
-        //     );
-        //     if (isAddedElementMyTweet && ProfileFollowersNum) {
-        //         addPercentageToTweet(tweet, ProfileName, ProfileFollowersNum);
-        //     }
-        // });
-        // pageUpdateObserver.observe(document.body, {
-        //     childList: true,
-        //     subtree: true,
-        // });
-        // reObserve();
+        // Iterate over each tweet element
+        tweetsDom.forEach((tweet) => {
+            // Check if the tweet belongs to the profile and if it not the timeline div
+            const isAddedElementMyTweet = isElementLoaded(
+                `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
+                tweet
+            );
+            // Check if it is not the timeline div (tweet duplicate bug)
+            const isTimeLine = tweet.querySelectorAll(
+                `[href^="/${ProfileName}/status/"][href$="/analytics"]`
+            );
+
+            // if profile followers is available
+            if (
+                isAddedElementMyTweet &&
+                tweet &&
+                isTimeLine.length === 1 &&
+                ProfileFollowersNum
+            ) {
+                addPercentageToTweet(tweet, ProfileName, ProfileFollowersNum);
+            }
+        });
+
+        // Re-observe when the page change (for SPA websites)
+        reObserve();
+
+        // Send response back to service worker with the profile name (for no reason)
         sendResponse({ ProfileName: ProfileName });
     }
 );
 
-// const pageUpdateObserver = new MutationObserver(
-//     (mutationsList: MutationRecord[]) => {
-//         for (const mutation of mutationsList) {
-//             console.log("o");
-//             if (
-//                 mutation.type === "childList" &&
-//                 mutation.addedNodes.length > 0
-//             ) {
-//                 const addedElement = mutation.addedNodes[0] as HTMLElement;
+const pageUpdateObserver = new MutationObserver(
+    (mutationsList: MutationRecord[]) => {
+        for (const mutation of mutationsList) {
+            if (
+                mutation.type === "childList" &&
+                mutation.addedNodes.length > 0
+            ) {
+                const addedElement = mutation.addedNodes[0] as HTMLElement;
 
-//                 ProfileFollowersNum = getFollowersNum(ProfileName);
-//                 if (ProfileFollowersNum) {
-//                     const isAddedElementMyTweet = isElementLoaded(
-//                         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
-//                         addedElement
-//                     );
-//                     if (isAddedElementMyTweet && addedElement) {
-//                         Tweets.add(addedElement);
-//                         addPercentageToTweet(
-//                             addedElement,
-//                             ProfileName,
-//                             ProfileFollowersNum
-//                         );
-//                     }
-//                 } else {
-//                     loadRetries++;
-//                 }
-//                 if (loadRetries > maxLoadRetries) {
-//                     pageUpdateObserver.disconnect();
-//                 }
-//             }
-//         }
-//     }
-// );
+                ProfileFollowersNum = getFollowersNum(ProfileName);
+                if (ProfileFollowersNum) {
+                    // Check if the tweet belongs to the profile and if it not the timeline div
+                    const isAddedElementMyTweet = isElementLoaded(
+                        `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
+                        addedElement
+                    );
+                    // Check if it is not the timeline div (tweet duplicate bug)
+                    const isTimeLine = addedElement.querySelectorAll(
+                        `[href^="/${ProfileName}/status/"][href$="/analytics"]`
+                    );
 
-// function reObserve() {
-//     const isMainLoaded = isElementLoaded("main");
-//     if (isMainLoaded) {
-//         pageUpdateObserver.disconnect();
+                    if (
+                        isAddedElementMyTweet &&
+                        addedElement &&
+                        isTimeLine.length === 1
+                    ) {
+                        addPercentageToTweet(
+                            addedElement,
+                            ProfileName,
+                            ProfileFollowersNum
+                        );
+                    }
+                } else {
+                    loadRetries++;
+                    if (loadRetries > maxLoadRetries) {
+                        pageUpdateObserver.disconnect();
+                        loadRetries = 0;
+                    }
+                }
+            }
+        }
+    }
+);
+pageUpdateObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+});
 
-//         console.log("re");
+// ? Re-observe when the page change (for SPA websites)
+function reObserve() {
+    pageUpdateObserver.disconnect();
 
-//         pageUpdateObserver.observe(
-//             document.querySelector("main") as HTMLElement,
-//             {
-//                 childList: true,
-//                 subtree: true,
-//             }
-//         );
-//     }
-// }
-
-// pageUpdateObserver.observe(document.body, {
-//     childList: true,
-//     subtree: true,
-// });
-
+    pageUpdateObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+    });
+}
 function getFollowersNum(ProfileName: string): number | null {
     let isProfileLoaded = isElementLoaded(
         `${mainPath} a[href='/${ProfileName}/verified_followers']`
@@ -118,7 +126,6 @@ function getFollowersNum(ProfileName: string): number | null {
 
     return null;
 }
-
 function addPercentageToTweet(
     tweet: Element,
     ProfileName: string,
@@ -131,26 +138,45 @@ function addPercentageToTweet(
         `[href^="/${ProfileName}/status/"][href$="/analytics"]`,
     ];
 
+    // get the span that have the text
+    function findInnermostTextNode(element: HTMLElement): Text | null {
+        let innermostTextNode: Text | null = null;
+
+        // Recursive function to traverse the DOM tree
+        function traverse(node: Node) {
+            if (node instanceof Text && node.textContent?.trim() !== "") {
+                innermostTextNode = node;
+            } else if (
+                node instanceof HTMLElement &&
+                node.childNodes.length > 0
+            ) {
+                // Continue traversing child nodes
+                node.childNodes.forEach(traverse);
+            }
+        }
+
+        traverse(element);
+
+        return innermostTextNode;
+    }
+
     tweetSelectors.forEach((selector) => {
         const element = tweet.querySelector(selector) as HTMLElement | null;
         if (element) {
             const tweetNum = extractNumberFromString(element.textContent || "");
             const percentage = calculatePercentage(tweetNum, FollowersNum);
             if (percentage) {
-                let percentageDiv = document.createElement("div");
-
-                percentageDiv.classList.add("Reach-Ratio");
-
-                // percentageDiv.setAttribute('data-engagement', percentage);
-
-                percentageDiv.textContent = percentage;
-
-                element.appendChild(percentageDiv);
+                const innerTextTextNode = findInnermostTextNode(element);
+                if (innerTextTextNode) {
+                    element.classList.add("Reach-Ratio");
+                    innerTextTextNode.textContent = percentage;
+                }
             }
         }
     });
 }
 
+// ? return the profile name form url (the first path)
 function handleUrl(url: string): string {
     let page_URL = new URL(url);
     let pathName = page_URL.pathname;
@@ -181,7 +207,10 @@ function extractNumberFromString(inputString: string): number {
     const extractedNumber = parseInt(inputString.replace(/\D/g, ""), 10) || 0;
     return extractedNumber;
 }
+
+// ? Converts a string representation of a number with optional suffixes (K, M, B, T) into a numeric value.
 function convertToNumber(input: string): number {
+    // Rgx to match the number pattern and optional suffixes
     const regex = /^(\d+(\.\d+)?)\s*([KkMmBbTt])?$/;
     const match = input.match(regex);
 
@@ -233,13 +262,12 @@ function calculatePercentage(
 // // TODO: 1- #Bug, fix the father.querySelector error
 // // TODO: #Bug fix the 123K return 123 not 123000 (use the aria or make a function)
 // // TODO: retweet vs tweet vs the not tweet things
-// TODO: make it look good with some css
+// // TODO: make it look good
+// // TODO: #Bug, when a tweet is already loaded it doesn't work
+// // TODO: #Bug, the first tweet duplicate
 // TODO: make the code smaller and easer to read (handlePageUpdate)
 
-// TODO: #Bug, when a tweet is already loaded it doesn't work
-// TODO: #Bug, the first tweet duplicate
-
-// TODO: + add sating
+// TODO: + add options
 // TODO: + add an option for every way % can be (what happen if less than 1%, ...)
 // TODO: + save the % in the extension storage
 // TODO: + get Followers num when not in the profile page

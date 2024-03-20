@@ -1,33 +1,21 @@
 {
     "manifest_version": 3,
     "name": "Reach Ratio",
-    "description": "See your real engagement; Interactions as % of followers.",
+    "description": "A simple Chrome extension, See Your Real Engagement!, converts interactions on Twitter into a percentage relative to the number of your followers and the level of interaction.",
     "author": {
         "email": "ymhaah250@gmail.com"
     },
     "homepage_url": "https://github.com/ymhaah/Reach-Ratio",
-    "version": "0.1",
+    "version": "1.0.0",
     "icons": {
         "128": "Reach_Ratio-128.png"
     },
-    "permissions": [
-        "scripting",
-        "activeTab",
-        "storage",
-        "tabs",
-        "declarativeContent",
-        "webNavigation"
-    ],
+    "permissions": ["activeTab", "scripting", "tabs", "webNavigation"],
     "host_permissions": ["https://twitter.com/*"],
-    "action": {
-        "default_popup": "index.html",
-        "default_icon": "Reach_Ratio.png"
-    },
     "content_scripts": [
         {
             "matches": ["https://twitter.com/*"],
             "js": ["./scripts/content.js"],
-            "css": ["./content.css"],
             "all_frames": true
         }
     ],

@@ -1,9 +1,5 @@
 // service worker / background
 
-// TODO: make an exclude_matches for performance
-
-// ? high level var (used a lot) => Name_Name
-
 type supportedWebsiteT = {
     URL: string;
     TYPE: "SPA" | "Regular";
@@ -76,10 +72,3 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(handelUrl);
 
 // ? Listen for page load events (for regular pages)
 chrome.webNavigation.onCompleted.addListener(handelUrl);
-
-// "exclude_matches": [
-//     "https://twitter.com/explore",
-//     "https://twitter.com/home",
-//     "https://twitter.com/notifications",
-//     "https://twitter.com/messages"
-// ]

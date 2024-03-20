@@ -67,9 +67,3 @@ handelUrl();
 chrome.webNavigation.onHistoryStateUpdated.addListener(handelUrl);
 // ? Listen for page load events (for regular pages)
 chrome.webNavigation.onCompleted.addListener(handelUrl);
-// "exclude_matches": [
-//     "https://twitter.com/explore",
-//     "https://twitter.com/home",
-//     "https://twitter.com/notifications",
-//     "https://twitter.com/messages"
-// ]
