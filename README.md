@@ -2,7 +2,7 @@
 
 A simple Chrome extension, See Your Real Engagement!, converts interactions on Twitter into a percentage relative to the number of your followers and the level of interaction.
 
-When you go to any profile page all tweets this profile have will be a percentage relative to the number of its followers.
+When you go to any profile page all tweets this profile has will be a percentage relative to the number of its followers.
 
 ## Screenshot
 
@@ -10,16 +10,16 @@ When you go to any profile page all tweets this profile have will be a percentag
 
 ![before](./before.jpeg)
 
-`after`
+`After`
 
-![after](./after.jpeg)
+![After](./after.jpeg)
 
 ## Built with
 
 -   **Extension API:** Chrome Extension V3
 -   **Language:** TypeScript
 
-## What I learned
+## Working Principle
 
 `MutationObserver`
 
@@ -47,8 +47,8 @@ pageUpdateObserver.observe(document.body, {
 ## To Do
 
 -   add options to pop-up
--   add an option for every way % can be (what happen if less than 1%, ...)
--   get Followers number when not in the profile page
+-   add an option for every way % can be (what happens if less than 1%, ...)
+-   Get followers numbers when not on the profile page
 -   make it work on every page for every tweet
 
 ### From the developer
